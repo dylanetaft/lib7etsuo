@@ -4,7 +4,7 @@ include(FetchContent)
 
 FetchContent_Declare (
     l7_util_exception
-    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../src/util/except"
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../src/core/except"
 )
 FetchContent_MakeAvailable(l7_util_exception)
 

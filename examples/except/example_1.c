@@ -1,4 +1,4 @@
-#include <lib7etsuo/util/except/L7_Except.h>
+#include <lib7etsuo/core/except/L7_Except.h>
 #include <stdio.h>
 
 const L7_Except_T ExampleException_BaseException = { &ExampleException_BaseException,"Base Exception Occurred" };
