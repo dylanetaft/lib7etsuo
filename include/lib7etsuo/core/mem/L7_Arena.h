@@ -10,8 +10,7 @@
  * @{
  */
 
-#ifndef ARENA_INCLUDED
-#define ARENA_INCLUDED
+#pragma once
 
 #include <stddef.h>
 
@@ -56,7 +55,7 @@ extern const Except_T Arena_Failed;
  *
  * @threadsafe Yes
  */
-extern T Arena_new (void);
+extern T L7_Arena_new (void);
 
 /**
  * @brief Create a new unlocked memory arena for single-threaded use.
@@ -69,7 +68,7 @@ extern T Arena_new (void);
  *
  * @threadsafe No - arena must only be used by creating thread
  */
-extern T Arena_new_unlocked (void);
+extern T L7_Arena_new_unlocked (void);
 
 /**
  * @brief Dispose arena and free all allocations.
@@ -80,7 +79,7 @@ extern T Arena_new_unlocked (void);
  *
  * @threadsafe Yes
  */
-extern void Arena_dispose (T *ap);
+extern void L7_Arena_dispose (T *ap);
 
 /**
  * @brief Allocate raw memory from arena.
@@ -98,7 +97,7 @@ extern void Arena_dispose (T *ap);
  * @threadsafe Yes
  * @complexity Amortized O(1)
  */
-extern void *Arena_alloc (T arena, size_t nbytes, const char *file, int line);
+extern void *L7_Arena_alloc (T arena, size_t nbytes, const char *file, int line);
 
 /**
  * @brief Allocate zero-initialized memory from arena.
@@ -117,7 +116,7 @@ extern void *Arena_alloc (T arena, size_t nbytes, const char *file, int line);
  * @threadsafe Yes
  * @complexity O(1) alloc + O(n) zeroing
  */
-extern void *Arena_calloc (T arena, size_t count, size_t nbytes,
+extern void *L7_Arena_calloc (T arena, size_t count, size_t nbytes,
                            const char *file, int line);
 
 /**
@@ -131,7 +130,7 @@ extern void *Arena_calloc (T arena, size_t count, size_t nbytes,
  * @threadsafe Yes
  * @complexity O(chunks)
  */
-extern void Arena_clear (T arena);
+extern void L7_Arena_clear (T arena);
 
 /**
  * @brief Reset arena for reuse without global mutex contention.
@@ -149,7 +148,7 @@ extern void Arena_clear (T arena);
  * @threadsafe Yes
  * @complexity O(chunks) for first reset, O(1) for subsequent resets
  */
-extern void Arena_reset (T arena);
+extern void L7_Arena_reset (T arena);
 
 /**
  * @brief Allocate with automatic source location tracking.
