@@ -41,7 +41,7 @@
 /**
  * @brief L7_Exception payload with type identifier and description.
  *
- * Define module exceptions as: `const L7_Except_T MyError = { &BaseType,
+ * Define module exceptions as: `const L7_Except_T MyError = { &MyError,
  * "reason" };`
  */
 typedef struct L7_Except_T {
