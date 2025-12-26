@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util/except/L7_Except.h"
+#include <lib7etsuo/util/except/L7_Except.h>
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #define L7_EXCEPT_NORETURN _Noreturn
