@@ -13,6 +13,32 @@
 #pragma once
 
 #include <stddef.h>
+#include <lib7etsuo/core/log/L7_Logger.h>
+#include <lib7etsuo/core/except/L7_Except.h>
+
+
+//TODO: Move these to L7_Arena_Config.h
+#ifndef L7_ARENA_SUCCESS
+#define L7_ARENA_SUCCESS 0
+#endif
+
+#ifndef L7_ARENA_FAILURE
+#define L7_ARENA_FAILURE -1
+#endif
+
+
+#ifndef L7_ARENA_CHUNK_REUSED
+#define L7_ARENA_CHUNK_REUSED 1
+#endif
+
+#ifndef L7_ARENA_CHUNK_NOT_REUSED
+#define L7_ARENA_CHUNK_NOT_REUSED 0
+#endif
+
+#ifndef L7_ARENA_CHUNK_SIZE
+#define L7_ARENA_CHUNK_SIZE (10 * 1024) /* 10KB */
+#endif
+
 
 /**
  * @file Arena.h
@@ -28,24 +54,23 @@
  * - Thread-safe with per-arena mutex
  *
  * @code{.c}
- * Arena_T arena = Arena_new();
+ * Arena_T arena = L7_Arena_new();
  * void *ptr = ALLOC(arena, 100);
  * Arena_dispose(&arena);
  * @endcode
  */
 
-#include "core/Except.h"
 
 /**
  * @brief Opaque arena type.
  */
-#define T Arena_T
+#define T L7_Arena_T
 typedef struct T *T;
 
 /**
  * @brief Exception raised on arena allocation failure.
  */
-extern const Except_T Arena_Failed;
+extern const L7_Except_T Arena_Failed;
 
 /**
  * @brief Create a new memory arena.
@@ -166,4 +191,3 @@ extern void L7_Arena_reset (T arena);
 
 /** @} */
 
-#endif

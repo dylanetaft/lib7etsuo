@@ -12,10 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/Arena.h"
-#include "core/Except.h"
-
-#define T Arena_T
+#include <lib7etsuo/core/mem/L7_Arena.h>
+#include <lib7etsuo/core/except/L7_Except.h>
+#include <lib7etsuo/core/sec/L7_MemSafety.h>
+#define T L7_Arena_T
 
 struct ChunkHeader
 {
@@ -67,9 +67,9 @@ arena_link_chunk (T arena, struct ChunkHeader *ptr, char *limit)
   arena->prev = ptr;
 }
 
-const Except_T Arena_Failed = { &Arena_Failed, "Arena operation failed" };
+const L7_Except_T Arena_Failed = { &Arena_Failed, "Arena operation failed" };
 
-SOCKET_DECLARE_MODULE_EXCEPTION (Arena);
+L7_DECLARE_MODULE_EXCEPTION (Arena);
 
 static struct ChunkHeader *freechunks = NULL;
 static int nfree = 0;
@@ -133,7 +133,7 @@ static int
 check_alloc_allowed (size_t current, size_t nbytes, size_t limit)
 {
   size_t desired;
-  if (!SocketSecurity_check_add (current, nbytes, &desired))
+  if (!L7_sec_sz_check_add (current, nbytes, &desired))
     return 0;
 
   if (limit > 0 && desired > limit)
@@ -151,23 +151,23 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
 {
   size_t total;
 
-  if (!SocketSecurity_check_add (sizeof (union header), chunk_size, &total))
+  if (!L7_sec_sz_check_add (sizeof (union header), chunk_size, &total))
     {
       SOCKET_ERROR_MSG (
           "Chunk size overflow: sizeof(header)=%zu + chunk_size=%zu",
           sizeof (union header), chunk_size);
-      return ARENA_FAILURE;
+      return L7_ARENA_FAILURE;
     }
 
   if (!SocketSecurity_check_size (total))
     {
       SOCKET_ERROR_MSG ("Chunk size exceeds maximum: %zu (limit=%zu)", total,
                         SocketSecurity_get_max_allocation ());
-      return ARENA_FAILURE;
+      return L7_ARENA_FAILURE;
     }
 
   *total_out = total;
-  return ARENA_SUCCESS;
+  return L7_ARENA_SUCCESS;
 }
 
 static int
@@ -176,10 +176,10 @@ acquire_global_memory (size_t total)
   if (!global_memory_try_alloc (total))
     {
       fprintf(stderr, "TODO: Put metric counting here\n");
-      return ARENA_FAILURE;
+      return L7_ARENA_FAILURE;
     }
 
-  return ARENA_SUCCESS;
+  return L7_ARENA_SUCCESS;
 }
 
 static struct ChunkHeader *
@@ -218,7 +218,7 @@ chunk_cache_get (struct ChunkHeader **ptr_out, char **limit_out)
       freechunks = freechunks->prev;
       nfree--;
       *limit_out = chunk_limit (*ptr_out);
-      result = ARENA_CHUNK_REUSED;
+      result = L7_ARENA_CHUNK_REUSED;
     }
 
   pthread_mutex_unlock (&arena_mutex);
@@ -261,14 +261,13 @@ arena_align_size (size_t nbytes)
   size_t units;
   size_t final_size;
 
-  fprintf(stderr, "TODO: confirm wtf is this doing\n");
-  //if (!SocketSecurity_check_add (nbytes, align - 1, &sum))
-  //  return 0;
+  if (!L7_sec_sz_check_add (nbytes, align - 1, &sum))
+    return 0;
 
   units = sum / align;
 
-  //if (!SocketSecurity_check_multiply (units, align, &final_size))
-  //  return 0;
+  if (!L7_sec_sz_check_mult (units, align, &final_size))
+    return 0;
 
   return final_size;
 }
@@ -278,16 +277,15 @@ arena_calculate_aligned_size (size_t nbytes)
 {
   size_t final_size;
 
-  if (!SocketSecurity_check_size (nbytes))
+  if (!L7_sec_sz_check_size (nbytes))
     return 0;
 
   final_size = arena_align_size (nbytes);
 
   /* Defensive check for rounding overflow (possible if align large relative to
    * max) */
-  fprintf("stderr", "Reimplement defensive check for rounding overflow\n");
-  //if (!SocketSecurity_check_size (final_size))
-  //  return 0;
+  if (!L7_sec_sz_check_size (final_size))
+    return 0;
 
   return final_size;
 }
@@ -299,21 +297,21 @@ arena_allocate_new_chunk (size_t chunk_size, struct ChunkHeader **ptr_out,
   size_t total;
   struct ChunkHeader *ptr;
 
-  if (validate_chunk_size (chunk_size, &total) != ARENA_SUCCESS)
-    return ARENA_FAILURE;
+  if (validate_chunk_size (chunk_size, &total) != L7_ARENA_SUCCESS)
+    return L7_ARENA_FAILURE;
 
-  if (acquire_global_memory (total) != ARENA_SUCCESS)
-    return ARENA_FAILURE;
+  if (acquire_global_memory (total) != L7_ARENA_SUCCESS)
+    return L7_ARENA_FAILURE;
 
   ptr = allocate_raw_chunk (total);
   if (ptr == NULL)
-    return ARENA_FAILURE;
+    return L7_ARENA_FAILURE;
 
   ptr->chunk_size = chunk_size;
   *ptr_out = ptr;
   *limit_out = chunk_limit (ptr);
 
-  return ARENA_SUCCESS;
+  return L7_ARENA_SUCCESS;
 }
 
 /* Must hold arena->mutex */
@@ -324,19 +322,19 @@ arena_get_chunk (T arena, size_t min_size)
   char *limit;
   size_t chunk_size;
 
-  if (chunk_cache_get (&ptr, &limit) == ARENA_CHUNK_REUSED)
+  if (chunk_cache_get (&ptr, &limit) == L7_ARENA_CHUNK_REUSED)
     {
       arena_link_chunk (arena, ptr, limit);
-      return ARENA_SUCCESS;
+      return L7_ARENA_SUCCESS;
     }
 
-  chunk_size = (ARENA_CHUNK_SIZE < min_size) ? min_size : ARENA_CHUNK_SIZE;
+  chunk_size = (L7_ARENA_CHUNK_SIZE < min_size) ? min_size : L7_ARENA_CHUNK_SIZE;
 
-  if (arena_allocate_new_chunk (chunk_size, &ptr, &limit) != ARENA_SUCCESS)
-    return ARENA_FAILURE;
+  if (arena_allocate_new_chunk (chunk_size, &ptr, &limit) != L7_ARENA_SUCCESS)
+    return L7_ARENA_FAILURE;
 
   arena_link_chunk (arena, ptr, limit);
-  return ARENA_SUCCESS;
+  return L7_ARENA_SUCCESS;
 }
 
 /* Must hold arena->mutex */
@@ -368,15 +366,15 @@ L7_Arena_new (void)
   arena = malloc (sizeof (*arena));
   if (arena == NULL)
     fprintf(stderr, "Cannot allocate arena structure\n");
-    //SOCKET_RAISE_MSG (Arena, Arena_Failed,
-    //                  ARENA_ENOMEM ": Cannot allocate arena structure");
+    L7_RAISE_MSG (Arena, Arena_Failed,
+                      ARENA_ENOMEM ": Cannot allocate arena structure");
 
   if (pthread_mutex_init (&arena->mutex, NULL) != 0)
     {
       free (arena);
       fprintf(stderr, "Failed to initialize arena mutex\n");
-      //SOCKET_RAISE_MSG (Arena, Arena_Failed,
-      //                  "Failed to initialize arena mutex");
+      L7_RAISE_MSG (Arena, Arena_Failed,
+                        "Failed to initialize arena mutex");
     }
 
   arena->prev = NULL;
@@ -394,7 +392,7 @@ L7_Arena_new_unlocked (void)
 
   arena = malloc (sizeof (*arena));
   if (arena == NULL)
-    SOCKET_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG (Arena, Arena_Failed,
                       ARENA_ENOMEM ": Cannot allocate arena structure");
 
   /* No mutex initialization for unlocked arenas */
@@ -436,16 +434,16 @@ L7_Arena_alloc (T arena, size_t nbytes, const char *file, int line)
   (void)file;
   (void)line;
   if (arena == NULL)
-    SOCKET_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
+    L7_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
                       "Arena_alloc");
 
   if (nbytes == 0)
-    SOCKET_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG (Arena, Arena_Failed,
                       "Zero size allocation in Arena_alloc");
 
   size_t aligned_size = arena_calculate_aligned_size (nbytes);
   if (aligned_size == 0)
-    SOCKET_RAISE_MSG (
+    L7_RAISE_MSG (
         Arena, Arena_Failed,
         "Invalid allocation size: %zu bytes (overflow or exceeds limit)",
         nbytes);
@@ -457,11 +455,11 @@ L7_Arena_alloc (T arena, size_t nbytes, const char *file, int line)
          || (size_t)(arena->limit - arena->avail) < aligned_size)
     {
 
-      if (arena_get_chunk (arena, aligned_size) != ARENA_SUCCESS)
+      if (arena_get_chunk (arena, aligned_size) != L7_ARENA_SUCCESS)
         {
           if (arena->locked)
             pthread_mutex_unlock (&arena->mutex);
-          SOCKET_RAISE_MSG (
+          L7_RAISE_MSG (
               Arena, Arena_Failed,
               "Failed to allocate chunk for %zu bytes (out of memory)",
               aligned_size);
@@ -482,21 +480,21 @@ L7_Arena_calloc (T arena, size_t count, size_t nbytes, const char *file, int lin
   (void)file;
   (void)line;
   if (arena == NULL)
-    SOCKET_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
+    L7_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
                       "Arena_calloc");
   if (count == 0 || nbytes == 0)
-    SOCKET_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG (Arena, Arena_Failed,
                       "Invalid count (%zu) or nbytes (%zu) in %s", count,
                       nbytes, "Arena_calloc");
 
   size_t total;
   if (!SocketSecurity_check_multiply (count, nbytes, &total))
-    SOCKET_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG (Arena, Arena_Failed,
                       "calloc overflow: count=%zu, nbytes=%zu in %s", count,
                       nbytes, "Arena_calloc");
 
   if (!SocketSecurity_check_size (total))
-    SOCKET_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG (Arena, Arena_Failed,
                       "calloc size exceeds maximum: %zu (limit=%zu) in %s",
                       total, SocketSecurity_get_max_allocation (),
                       "Arena_calloc");
