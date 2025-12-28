@@ -150,6 +150,8 @@ void L7_Log_emit(L7LogLevel level, const char *component, const char *message);
 /**
  * @brief L7_LOG_MSG_TRUSTED - Format message for logging with trusted format
  * Long strings may be truncated
+ * Be wary of passing untrusted user input to this macro
+ * If your format string is proper, it is OK. 
  */
 #define L7_LOG_MSG_TRUSTED(level, component, fmt, ...)                         \
   do {                                                                         \
@@ -163,6 +165,7 @@ void L7_Log_emit(L7LogLevel level, const char *component, const char *message);
 /**
  * @brief L7_LOG_MSG - Log user-provided string with truncation protection
  * Long strings may be truncated
+ * This macro avoids format string vulnerabilities
  */
 #define L7_LOG_MSG(level, component, user_str)                                 \
   do {                                                                         \
