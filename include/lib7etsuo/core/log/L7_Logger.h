@@ -64,11 +64,10 @@ typedef enum L7LogLevel {
  *
  * @threadsafe Yes
  */
-const char *L7_Log_getlevelname (L7LogLevel level);
+const char *L7_Log_getlevelname(L7LogLevel level);
 
-static const char *const L7LogLevelNames[]
-    = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL" };
-
+static const char *const L7LogLevelNames[] = {"TRACE", "DEBUG", "INFO",
+                                              "WARN",  "ERROR", "FATAL"};
 
 /**
  * @brief Custom logging callback function type.
@@ -79,11 +78,10 @@ static const char *const L7LogLevelNames[]
  * @param message Log message.
  * @see SocketLog_setcallback() for registration.
  */
-typedef void (*L7LogCallback) (void *userdata, L7LogLevel level,
-                                   const char *component, const char *message);
+typedef void (*L7LogCallback)(void *userdata, L7LogLevel level,
+                              const char *component, const char *message);
 
-
-void L7_Log_setcallback (L7LogCallback callback, void *userdata);
+void L7_Log_setcallback(L7LogCallback callback, void *userdata);
 
 /**
  * @brief Retrieve the currently registered logging callback and userdata.
@@ -94,8 +92,7 @@ void L7_Log_setcallback (L7LogCallback callback, void *userdata);
  *
  * @threadsafe Yes
  */
-L7LogCallback L7_Log_getcallback (void **userdata);
-
+L7LogCallback L7_Log_getcallback(void **userdata);
 
 /**
  * @brief Truncates string to fit output buffer and appends truncation marker
@@ -109,10 +106,9 @@ L7LogCallback L7_Log_getcallback (void **userdata);
  * @complexity O(min(b_in_size, b_out_size))
  */
 void L7_Log_apply_truncation(char *b_in, size_t b_in_size, char *b_out,
-                              size_t b_out_size);
+                             size_t b_out_size);
 
-void L7_Log_emit(L7LogLevel level, const char *component,
-                 const char *message);
+void L7_Log_emit(L7LogLevel level, const char *component, const char *message);
 
 #define L7_DECLARE_MODULE_EXCEPTION(module_name)                               \
   static thread_local L7_Except_T module_name##_DetailedException
@@ -152,14 +148,27 @@ void L7_Log_emit(L7LogLevel level, const char *component,
   } while (0)
 
 /**
- * @brief L7_LOG_MSG - Format message
-
- * Includes truncation protection for long messages.
+ * @brief L7_LOG_MSG_TRUSTED - Format message for logging with trusted format
+ * Long strings may be truncated
  */
-#define L7_LOG_MSG(level, component, fmt, ...)                                                 \
+#define L7_LOG_MSG_TRUSTED(level, component, fmt, ...)                         \
   do {                                                                         \
-    char tmp_buf[L7_LOG_BUFSIZE];                                            \
-    snprintf(tmp_buf, sizeof(tmp_buf), fmt, ##__VA_ARGS__);           \
-    L7_Log_apply_truncation(tmp_buf, L7_LOG_BUFSIZE - 1, tmp_buf, L7_LOG_BUFSIZE);                              \
-    L7_Log_emit(level, component, tmp_buf);                 \
+    char tmp_buf[L7_LOG_BUFSIZE];                                              \
+    snprintf(tmp_buf, sizeof(tmp_buf), fmt, ##__VA_ARGS__);                    \
+    L7_Log_apply_truncation(tmp_buf, L7_LOG_BUFSIZE - 1, tmp_buf,              \
+                            L7_LOG_BUFSIZE);                                   \
+    L7_Log_emit(level, component, tmp_buf);                                    \
+  } while (0)
+
+/**
+ * @brief L7_LOG_MSG - Log user-provided string with truncation protection
+ * Long strings may be truncated
+ */
+#define L7_LOG_MSG(level, component, user_str)                                 \
+  do {                                                                         \
+    char tmp_buf[L7_LOG_BUFSIZE];                                              \
+    snprintf(tmp_buf, sizeof(tmp_buf), "%s", user_str);                        \
+    L7_Log_apply_truncation(tmp_buf, L7_LOG_BUFSIZE - 1, tmp_buf,              \
+                            L7_LOG_BUFSIZE);                                   \
+    L7_Log_emit(level, component, tmp_buf);                                    \
   } while (0)
