@@ -12,6 +12,34 @@
 #define thread_local _Thread_local
 #endif
 
+/**
+ * @brief Timestamp formatting buffer size.
+ *
+ */
+#ifndef L7_LOG_TIMESTAMP_BUFSIZE
+#define L7_LOG_TIMESTAMP_BUFSIZE 64
+#endif
+
+/**
+ * @brief Timestamp format string.
+ *
+ */
+#ifndef L7_LOG_TIMESTAMP_FORMAT
+#define L7_LOG_TIMESTAMP_FORMAT "%Y-%m-%d %H:%M:%S"
+#endif
+
+/**
+ * @brief Default timestamp for formatting errors.
+ *
+ */
+#ifndef L7_LOG_DEFAULT_TIMESTAMP
+#define L7_LOG_DEFAULT_TIMESTAMP "1970-01-01 00:00:00"
+#endif
+
+/**
+ * @brief Log message truncation marker.
+ *
+ */
 #ifndef L7_LOG_TRUNCATION_MARKER
 #define L7_LOG_TRUNCATION_MARKER "...truncated"
 #endif
@@ -27,7 +55,59 @@ typedef enum L7LogLevel {
   L7_LOG_FATAL
 } L7LogLevel;
 
+/**
+ * @brief Get human-readable string for a log level.
+ * @ingroup foundation
+ *
+ * @param level Log level enum value.
+ * @return Static string ("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL").
+ *
+ * @threadsafe Yes
+ */
+const char *L7_Log_getlevelname (L7LogLevel level);
 
+static const char *const L7LogLevelNames[]
+    = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL" };
+
+
+/**
+ * @brief Custom logging callback function type.
+ * @ingroup foundation
+ * @param userdata User-provided context.
+ * @param level Log severity level.
+ * @param component Module/component name.
+ * @param message Log message.
+ * @see SocketLog_setcallback() for registration.
+ */
+typedef void (*L7LogCallback) (void *userdata, L7LogLevel level,
+                                   const char *component, const char *message);
+
+
+void L7_Log_setcallback (L7LogCallback callback, void *userdata);
+
+/**
+ * @brief Retrieve the currently registered logging callback and userdata.
+ * @ingroup foundation
+ *
+ * @param userdata Output for userdata (may be NULL).
+ * @return Current SocketLogCallback, or internal default if none registered.
+ *
+ * @threadsafe Yes
+ */
+L7LogCallback L7_Log_getcallback (void **userdata);
+
+
+/**
+ * @brief Truncates string to fit output buffer and appends truncation marker
+ *
+ * @param[in] b_in          Source string buffer
+ * @param[in] b_in_size     Size of source buffer
+ * @param[out] b_out        Destination buffer
+ * @param[in] b_out_size    Size of destination buffer
+ *
+ * @threadsafe Yes
+ * @complexity O(min(b_in_size, b_out_size))
+ */
 void L7_Log_apply_truncation(char *b_in, size_t b_in_size, char *b_out,
                               size_t b_out_size);
 
