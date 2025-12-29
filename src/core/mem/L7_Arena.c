@@ -153,7 +153,7 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
 
   if (!L7_sec_sz_check_add (sizeof (union header), chunk_size, &total))
     {
-      SOCKET_ERROR_MSG (
+      L7_LOG_MSG_TRUSTED(L7_LOG_ERROR, "Arena",
           "Chunk size overflow: sizeof(header)=%zu + chunk_size=%zu",
           sizeof (union header), chunk_size);
       return L7_ARENA_FAILURE;
@@ -161,7 +161,7 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
 
   if (!SocketSecurity_check_size (total))
     {
-      SOCKET_ERROR_MSG ("Chunk size exceeds maximum: %zu (limit=%zu)", total,
+      L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "ArenA", "Chunk size exceeds maximum: %zu (limit=%zu)", total,
                         SocketSecurity_get_max_allocation ());
       return L7_ARENA_FAILURE;
     }
@@ -366,14 +366,14 @@ L7_Arena_new (void)
   arena = malloc (sizeof (*arena));
   if (arena == NULL)
     fprintf(stderr, "Cannot allocate arena structure\n");
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       ARENA_ENOMEM ": Cannot allocate arena structure");
 
   if (pthread_mutex_init (&arena->mutex, NULL) != 0)
     {
       free (arena);
       fprintf(stderr, "Failed to initialize arena mutex\n");
-      L7_RAISE_MSG (Arena, Arena_Failed,
+      L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                         "Failed to initialize arena mutex");
     }
 
@@ -392,7 +392,7 @@ L7_Arena_new_unlocked (void)
 
   arena = malloc (sizeof (*arena));
   if (arena == NULL)
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       ARENA_ENOMEM ": Cannot allocate arena structure");
 
   /* No mutex initialization for unlocked arenas */
@@ -434,16 +434,16 @@ L7_Arena_alloc (T arena, size_t nbytes, const char *file, int line)
   (void)file;
   (void)line;
   if (arena == NULL)
-    L7_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed, "NULL arena pointer in %s",
                       "Arena_alloc");
 
   if (nbytes == 0)
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "Zero size allocation in Arena_alloc");
 
   size_t aligned_size = arena_calculate_aligned_size (nbytes);
   if (aligned_size == 0)
-    L7_RAISE_MSG (
+    L7_RAISE_MSG_TRUSTED (
         Arena, Arena_Failed,
         "Invalid allocation size: %zu bytes (overflow or exceeds limit)",
         nbytes);
@@ -459,7 +459,7 @@ L7_Arena_alloc (T arena, size_t nbytes, const char *file, int line)
         {
           if (arena->locked)
             pthread_mutex_unlock (&arena->mutex);
-          L7_RAISE_MSG (
+          L7_RAISE_MSG_TRUSTED (
               Arena, Arena_Failed,
               "Failed to allocate chunk for %zu bytes (out of memory)",
               aligned_size);
@@ -480,21 +480,21 @@ L7_Arena_calloc (T arena, size_t count, size_t nbytes, const char *file, int lin
   (void)file;
   (void)line;
   if (arena == NULL)
-    L7_RAISE_MSG (Arena, Arena_Failed, "NULL arena pointer in %s",
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed, "NULL arena pointer in %s",
                       "Arena_calloc");
   if (count == 0 || nbytes == 0)
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "Invalid count (%zu) or nbytes (%zu) in %s", count,
                       nbytes, "Arena_calloc");
 
   size_t total;
   if (!SocketSecurity_check_multiply (count, nbytes, &total))
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc overflow: count=%zu, nbytes=%zu in %s", count,
                       nbytes, "Arena_calloc");
 
   if (!SocketSecurity_check_size (total))
-    L7_RAISE_MSG (Arena, Arena_Failed,
+    L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc size exceeds maximum: %zu (limit=%zu) in %s",
                       total, SocketSecurity_get_max_allocation (),
                       "Arena_calloc");
