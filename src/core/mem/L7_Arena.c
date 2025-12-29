@@ -260,14 +260,23 @@ arena_align_size (size_t nbytes)
   size_t sum;
   size_t units;
   size_t final_size;
-
-  if (!L7_sec_sz_check_add (nbytes, align - 1, &sum))
+  // Subtracting 1 from align makes division round up
+  if (!L7_sec_sz_check_add (nbytes, align - 1, &sum)) { 
+    L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "Arena",
+                        "Size alignment overflow: nbytes=%zu + align-1=%zu",
+                        nbytes, align - 1);
     return 0;
+  }
 
   units = sum / align;
 
-  if (!L7_sec_sz_check_mult (units, align, &final_size))
+  if (!L7_sec_sz_check_mult (units, align, &final_size)) {
+    L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "Arena",
+                        "Size alignment multiplication overflow: units=%zu * "
+                        "align=%zu",
+                        units, align);
     return 0;
+  }
 
   return final_size;
 }
@@ -279,14 +288,18 @@ arena_calculate_aligned_size (size_t nbytes)
 
   if (!L7_sec_sz_check_size (nbytes))
     return 0;
-
+  L7_LOG_MSG_TRUSTED (L7_LOG_DEBUG, "Arena",
+                      "Calculating aligned size for %zu bytes", nbytes);
   final_size = arena_align_size (nbytes);
+  L7_LOG_MSG_TRUSTED (L7_LOG_DEBUG, "Arena",
+                      "Aligned size: %zu bytes", final_size);
 
   /* Defensive check for rounding overflow (possible if align large relative to
    * max) */
   if (!L7_sec_sz_check_size (final_size))
     return 0;
-
+  L7_LOG_MSG_TRUSTED (L7_LOG_DEBUG, "Arena",
+                      "Final aligned size validated: %zu bytes", final_size);
   return final_size;
 }
 
@@ -363,16 +376,14 @@ L7_Arena_new (void)
 {
   T arena;
 
-  arena = malloc (sizeof (*arena));
+  arena = malloc (sizeof (struct T));
   if (arena == NULL)
-    fprintf(stderr, "Cannot allocate arena structure\n");
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "Out of Memory: Cannot allocate arena structure");
 
   if (pthread_mutex_init (&arena->mutex, NULL) != 0)
     {
       free (arena);
-      fprintf(stderr, "Failed to initialize arena mutex\n");
       L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                         "Failed to initialize arena mutex");
     }
@@ -390,7 +401,7 @@ L7_Arena_new_unlocked (void)
 {
   T arena;
 
-  arena = malloc (sizeof (*arena));
+  arena = malloc (sizeof (struct T));
   if (arena == NULL)
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "Out of Memory: Cannot allocate arena structure");

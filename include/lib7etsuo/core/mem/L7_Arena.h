@@ -69,7 +69,7 @@ union T7_align
 #endif
 
 /**
- * @file Arena.h
+ * @file L7_Arena.h
  * @ingroup foundation
  * @brief Arena-based memory allocator for efficient bulk memory management.
  *
@@ -82,9 +82,9 @@ union T7_align
  * - Thread-safe with per-arena mutex
  *
  * @code{.c}
- * Arena_T arena = L7_Arena_new();
+ * L7_Arena_T arena = L7_Arena_new();
  * void *ptr = ALLOC(arena, 100);
- * Arena_dispose(&arena);
+ * L7_Arena_dispose(&arena);
  * @endcode
  */
 
@@ -206,14 +206,14 @@ extern void L7_Arena_reset (T arena);
 /**
  * @brief Allocate with automatic source location tracking.
  */
-#define ALLOC(arena, nbytes)                                                  \
-  (Arena_alloc ((arena), (nbytes), __FILE__, __LINE__))
+#define L7_ARENA_ALLOC(arena, nbytes)                                                  \
+  (L7_Arena_alloc ((arena), (nbytes), __FILE__, __LINE__))
 
 /**
  * @brief Zero-allocate with automatic source location tracking.
  */
-#define CALLOC(arena, count, nbytes)                                          \
-  (Arena_calloc ((arena), (count), (nbytes), __FILE__, __LINE__))
+#define L7_ARENA_CALLOC(arena, count, nbytes)                                          \
+  (L7_Arena_calloc ((arena), (count), (nbytes), __FILE__, __LINE__))
 
 #undef T
 
