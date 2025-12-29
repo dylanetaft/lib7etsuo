@@ -17,6 +17,27 @@
 #include <lib7etsuo/core/except/L7_Except.h>
 
 
+/**
+ * @brief Alignment union for arena memory management.
+ *
+ * Ensures proper alignment for all data types to prevent alignment issues.
+ * Used to determine the maximum alignment requirement for arena allocations.
+ *
+ * @see Arena_T for arena memory management.
+ */
+union T7_align
+{
+  int i;
+  long l;
+  long *lp;
+  void *p;
+  void (*fp) (void);
+  float f;
+  double d;
+  long double ld;
+};
+
+
 //TODO: Move these to L7_Arena_Config.h
 #ifndef L7_ARENA_SUCCESS
 #define L7_ARENA_SUCCESS 0
@@ -39,6 +60,13 @@
 #define L7_ARENA_CHUNK_SIZE (10 * 1024) /* 10KB */
 #endif
 
+#ifndef L7_ARENA_MAX_FREE_CHUNKS
+#define L7_ARENA_MAX_FREE_CHUNKS 10
+#endif
+
+#ifndef L7_ARENA_ALIGNMENT_SIZE
+#define L7_ARENA_ALIGNMENT_SIZE sizeof (union T7_align)
+#endif
 
 /**
  * @file Arena.h

@@ -29,7 +29,7 @@ union header
 {
   struct ChunkHeader b;
   /* cppcheck-suppress unusedStructMember */
-  union align a;
+  union T7_align a;
 };
 
 struct T
@@ -159,10 +159,10 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
       return L7_ARENA_FAILURE;
     }
 
-  if (!SocketSecurity_check_size (total))
+  if (!L7_sec_sz_check_size(total))
     {
       L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "ArenA", "Chunk size exceeds maximum: %zu (limit=%zu)", total,
-                        SocketSecurity_get_max_allocation ());
+                        L7_SEC_ARENA_MAX_ALLOCATION);
       return L7_ARENA_FAILURE;
     }
 
@@ -208,7 +208,7 @@ allocate_raw_chunk (size_t total)
 static int
 chunk_cache_get (struct ChunkHeader **ptr_out, char **limit_out)
 {
-  int result = ARENA_CHUNK_NOT_REUSED;
+  int result = L7_ARENA_CHUNK_NOT_REUSED;
 
   pthread_mutex_lock (&arena_mutex);
 
@@ -235,7 +235,7 @@ chunk_cache_return (struct ChunkHeader *chunk)
 
   pthread_mutex_lock (&arena_mutex);
 
-  if (nfree < ARENA_MAX_FREE_CHUNKS)
+  if (nfree < L7_ARENA_MAX_FREE_CHUNKS)
     {
       chunk->prev = freechunks;
       freechunks = chunk;
@@ -256,7 +256,7 @@ chunk_cache_return (struct ChunkHeader *chunk)
 static size_t
 arena_align_size (size_t nbytes)
 {
-  size_t align = ARENA_ALIGNMENT_SIZE;
+  size_t align = L7_ARENA_ALIGNMENT_SIZE;
   size_t sum;
   size_t units;
   size_t final_size;
@@ -367,7 +367,7 @@ L7_Arena_new (void)
   if (arena == NULL)
     fprintf(stderr, "Cannot allocate arena structure\n");
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
-                      ARENA_ENOMEM ": Cannot allocate arena structure");
+                      "Out of Memory: Cannot allocate arena structure");
 
   if (pthread_mutex_init (&arena->mutex, NULL) != 0)
     {
@@ -393,7 +393,7 @@ L7_Arena_new_unlocked (void)
   arena = malloc (sizeof (*arena));
   if (arena == NULL)
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
-                      ARENA_ENOMEM ": Cannot allocate arena structure");
+                      "Out of Memory: Cannot allocate arena structure");
 
   /* No mutex initialization for unlocked arenas */
   arena->prev = NULL;
@@ -421,7 +421,7 @@ L7_Arena_dispose (T *ap)
   arena = *ap;
   locked = arena->locked;
 
-  Arena_clear (arena);
+  L7_Arena_clear (arena);
   if (locked)
     pthread_mutex_destroy (&arena->mutex);
   free (arena);
@@ -488,15 +488,15 @@ L7_Arena_calloc (T arena, size_t count, size_t nbytes, const char *file, int lin
                       nbytes, "Arena_calloc");
 
   size_t total;
-  if (!SocketSecurity_check_multiply (count, nbytes, &total))
+  if (!L7_sec_sz_check_mult (count, nbytes, &total))
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc overflow: count=%zu, nbytes=%zu in %s", count,
                       nbytes, "Arena_calloc");
 
-  if (!SocketSecurity_check_size (total))
+  if (!L7_sec_sz_check_size (total))
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc size exceeds maximum: %zu (limit=%zu) in %s",
-                      total, SocketSecurity_get_max_allocation (),
+                      total, L7_SEC_ARENA_MAX_ALLOCATION,
                       "Arena_calloc");
 
   void *ptr = L7_Arena_alloc (arena, count * nbytes, file, line);

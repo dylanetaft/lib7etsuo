@@ -1,6 +1,7 @@
 #pragma once
 #include <lib7etsuo/core/except/L7_Except.h>
 #include <string.h>
+#include <stdio.h>
 
 #ifndef L7_LOG_BUFSIZE
 #define L7_LOG_BUFSIZE 1024
@@ -131,6 +132,8 @@ void L7_Log_emit(L7LogLevel level, const char *component, const char *message);
     L7_LOG_MSG_TRUSTED(L7_LOG_ERROR, #module_name, fmt, ##__VA_ARGS__);  \
     char error_buf[L7_LOG_BUFSIZE];                                           \
     snprintf(error_buf, sizeof(error_buf), fmt, ##__VA_ARGS__);              \
+    L7_Log_apply_truncation(error_buf, L7_LOG_BUFSIZE - 1, error_buf,    \
+                            L7_LOG_BUFSIZE);                                   \
     module_name##_DetailedException = (exception);                             \
     module_name##_DetailedException.reason = error_buf;                        \
     L7_RAISE(module_name##_DetailedException);                                    \
