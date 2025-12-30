@@ -14,7 +14,7 @@
 
 #include <lib7etsuo/core/mem/L7_Arena.h>
 #include <lib7etsuo/core/except/L7_Except.h>
-#include <lib7etsuo/core/sec/L7_MemSafety.h>
+#include <lib7etsuo/core/sec/L7_Security.h>
 #define T L7_Arena_T
 
 struct ChunkHeader
@@ -133,7 +133,7 @@ static int
 check_alloc_allowed (size_t current, size_t nbytes, size_t limit)
 {
   size_t desired;
-  if (!L7_sec_sz_check_add (current, nbytes, &desired))
+  if (!L7_Sec_sz_check_add (current, nbytes, &desired))
     return 0;
 
   if (limit > 0 && desired > limit)
@@ -151,7 +151,7 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
 {
   size_t total;
 
-  if (!L7_sec_sz_check_add (sizeof (union header), chunk_size, &total))
+  if (!L7_Sec_sz_check_add (sizeof (union header), chunk_size, &total))
     {
       L7_LOG_MSG_TRUSTED(L7_LOG_ERROR, "Arena",
           "Chunk size overflow: sizeof(header)=%zu + chunk_size=%zu",
@@ -159,7 +159,7 @@ validate_chunk_size (size_t chunk_size, size_t *total_out)
       return L7_ARENA_FAILURE;
     }
 
-  if (!L7_sec_sz_check_size(total))
+  if (!L7_Sec_sz_check_size(total))
     {
       L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "ArenA", "Chunk size exceeds maximum: %zu (limit=%zu)", total,
                         L7_SEC_ARENA_MAX_ALLOCATION);
@@ -261,7 +261,7 @@ arena_align_size (size_t nbytes)
   size_t units;
   size_t final_size;
   // Subtracting 1 from align makes division round up
-  if (!L7_sec_sz_check_add (nbytes, align - 1, &sum)) { 
+  if (!L7_Sec_sz_check_add (nbytes, align - 1, &sum)) { 
     L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "Arena",
                         "Size alignment overflow: nbytes=%zu + align-1=%zu",
                         nbytes, align - 1);
@@ -270,7 +270,7 @@ arena_align_size (size_t nbytes)
 
   units = sum / align;
 
-  if (!L7_sec_sz_check_mult (units, align, &final_size)) {
+  if (!L7_Sec_sz_check_mul (units, align, &final_size)) {
     L7_LOG_MSG_TRUSTED (L7_LOG_ERROR, "Arena",
                         "Size alignment multiplication overflow: units=%zu * "
                         "align=%zu",
@@ -286,7 +286,7 @@ arena_calculate_aligned_size (size_t nbytes)
 {
   size_t final_size;
 
-  if (!L7_sec_sz_check_size (nbytes))
+  if (!L7_Sec_sz_check_size (nbytes))
     return 0;
   L7_LOG_MSG_TRUSTED (L7_LOG_DEBUG, "Arena",
                       "Calculating aligned size for %zu bytes", nbytes);
@@ -296,7 +296,7 @@ arena_calculate_aligned_size (size_t nbytes)
 
   /* Defensive check for rounding overflow (possible if align large relative to
    * max) */
-  if (!L7_sec_sz_check_size (final_size))
+  if (!L7_Sec_sz_check_size (final_size))
     return 0;
   L7_LOG_MSG_TRUSTED (L7_LOG_DEBUG, "Arena",
                       "Final aligned size validated: %zu bytes", final_size);
@@ -499,12 +499,12 @@ L7_Arena_calloc (T arena, size_t count, size_t nbytes, const char *file, int lin
                       nbytes, "Arena_calloc");
 
   size_t total;
-  if (!L7_sec_sz_check_mult (count, nbytes, &total))
+  if (!L7_Sec_sz_check_mul (count, nbytes, &total))
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc overflow: count=%zu, nbytes=%zu in %s", count,
                       nbytes, "Arena_calloc");
 
-  if (!L7_sec_sz_check_size (total))
+  if (!L7_Sec_sz_check_size (total))
     L7_RAISE_MSG_TRUSTED (Arena, Arena_Failed,
                       "calloc size exceeds maximum: %zu (limit=%zu) in %s",
                       total, L7_SEC_ARENA_MAX_ALLOCATION,
